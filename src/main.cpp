@@ -37,20 +37,24 @@ byte endPin;
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-uint16_t clockCounter;    // compteur de tops horloge
+volatile uint16_t clockCounter;    // compteur de tops horloge
+
 /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
 volatile uint32_t loopCounter = 0; // reset proper à l’ECOS
 ----------------------------------------------------------------------------------*/
-uint16_t sensors;         // tampon de 16 bits pour les capteurs
-uint16_t data = 0xFFFF;   // le registre à décalage
+volatile uint16_t sensors;         // tampon de 16 bits pour les capteurs
+volatile uint16_t data = 0xFFFF;   // le registre à décalage
 
 // routine d’interruption du signal PS
 // (déclenchement d’un nouveau cycle d’horloge)
 void PS()
 {
   clockCounter = 0; // on remet le compteur à zéro
+  noInterrupts();   // Désactiver les interruptions pour manipuler `sensors`
   data = sensors;   // on vide le tampon des capteurs dans le registre à décalage
   sensors = 0;      // on remet à zéro le tampon des capteurs
+  interrupts();     // Réactiver les interruptions
+
   /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
   loopCounter++; // Pour l'ECOS, on incrémente le nombre de top d’horloge
   ----------------------------------------------------------------------------------*/
@@ -88,7 +92,6 @@ void loop()
 {
 
   /* ---- Ne décommenter ces lignes que dans le cas où vous utilisez une ECOS -------
-
     if (loopCounter == 20) {
       bitSet(sensors, 0);            // reset des tampons des capteurs pour l’ECOS
     }
