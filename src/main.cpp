@@ -39,7 +39,7 @@ byte endPin;
 
 uint16_t clockCounter;    // compteur de tops horloge
 /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
-uint32_t loopCounter = 0; // reset proper à l’ECOS
+volatile uint32_t loopCounter = 0; // reset proper à l’ECOS
 ----------------------------------------------------------------------------------*/
 uint16_t sensors;         // tampon de 16 bits pour les capteurs
 uint16_t data = 0xFFFF;   // le registre à décalage
