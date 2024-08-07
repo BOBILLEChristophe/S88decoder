@@ -94,6 +94,7 @@ void loop()
   /* ---- Ne décommenter ces lignes que dans le cas où vous utilisez une ECOS -------
     if (loopCounter == 20) {
       bitSet(sensors, 0);            // reset des tampons des capteurs pour l’ECOS
+      loopCounter = 0;
     }
   ----------------------------------------------------------------------------------*/
 
