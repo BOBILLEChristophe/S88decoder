@@ -18,7 +18,7 @@ Pour une utilisation avec une centrale ECOS®, veillez à décommander les ligne
 --------------------------------------------------------------------------------------------------------------------*/
 
 #define PROJECT "S88 decoder"
-#define VERSION "0.4.2"
+#define VERSION "0.4.3"
 #define AUTHOR "Christophe BOBILLE - www.locoduino.org"
 
 #include <Arduino.h>
@@ -30,10 +30,12 @@ const byte dataInPin = 0;   // entrée des données depuis un autre Arduino dans
 const byte dataOutPin = 1;  // sortie des données vers un autre Arduino dans la chaîne ou vers la centrale pin = 1
 const byte clockS88pin = 2; // horloge du bus S88 pin = 2
 const byte PSS88pin = 3;    // signal PS du bus S88 pin = 3
-const byte beginPin = 4;    // première broche utilisée pour les capteurs
-const byte endPin8 = 12;    // dernière broche pour  8 capteurs
-const byte endPin16 = 19;   // dernière broche pour 16 capteurs
-byte endPin;
+
+#if defined(ARDUINO_AVR_NANO)
+const byte sensorInPin[] = {4, 5, 6, 7, 8 ,9 ,10, 11, 12, 14, 15, 16, 17, 18, 19, 13 };
+#elif defined(ARDUINO_AVR_UNO)
+const byte sensorInPin[] = {4, 5, 6, 7, 8 ,9 ,10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+#endif
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -42,7 +44,7 @@ volatile uint16_t clockCounter;    // compteur de tops horloge
 /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
 volatile uint32_t loopCounter = 0; // reset proper à l’ECOS
 ----------------------------------------------------------------------------------*/
-volatile uint16_t sensors;         // tampon de 16 bits pour les capteurs
+volatile uint16_t sensorsBuffer;         // tampon de 16 bits pour les capteurs
 volatile uint16_t data = 0xFFFF;   // le registre à décalage
 
 // routine d’interruption du signal PS
@@ -51,8 +53,8 @@ void PS()
 {
   clockCounter = 0; // on remet le compteur à zéro
   noInterrupts();   // Désactiver les interruptions pour manipuler `sensors`
-  data = sensors;   // on vide le tampon des capteurs dans le registre à décalage
-  sensors = 0;      // on remet à zéro le tampon des capteurs
+  data = sensorsBuffer;   // on vide le tampon des capteurs dans le registre à décalage
+  sensorsBuffer = 0;      // on remet à zéro le tampon des capteurs
   interrupts();     // Réactiver les interruptions
 
   /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
@@ -71,21 +73,14 @@ void clock()
 
 void setup()
 {
-  if (nbSensors == 8) // MAJ des broches concernées
-    endPin = endPin8;
-  else
-    endPin = endPin16;
-
   pinMode(dataInPin, INPUT_PULLUP);                                   // pin 0 = entrée des données depuis un autre Arduino
   pinMode(dataOutPin, OUTPUT);                                        // pin 1 = sortie des données vers la centrale ou vers un autre Arduino dans le chaînage S88
   pinMode(clockS88pin, INPUT_PULLUP);                                 // init de la broche pour l’horloge
-  attachInterrupt(digitalPinToInterrupt(clockS88pin), clock, RISING); // horloge sur int 0 sur la broche 2
   pinMode(PSS88pin, INPUT_PULLUP);                                    // init de la broche du signal PS
+  attachInterrupt(digitalPinToInterrupt(clockS88pin), clock, RISING); // horloge sur int 0 sur la broche 2
   attachInterrupt(digitalPinToInterrupt(PSS88pin), PS, RISING);       // PS sur int1 sur la broche 3
-  pinMode(dataInPin, INPUT_PULLUP);                                   // pin 0 = entrée des données depuis un autre Arduino
-  pinMode(dataOutPin, OUTPUT);                                        // pin 1 = sortie des données vers la centrale ou vers un autre Arduino dans le chaînage S88
-  for (int i = beginPin; i < endPin; i++)
-    pinMode(i, INPUT_PULLUP); // init des broches des capteurs
+  for (int i = 0; i < nbSensors; i++)
+    pinMode(sensorInPin[i], INPUT_PULLUP); // init des broches des capteurs
 }
 
 void loop()
@@ -100,9 +95,9 @@ void loop()
 
   for (byte i = 0; i < nbSensors; i++)
   { // MAJ des capteurs
-    if (!digitalRead(beginPin + i))
-      sensors |= 1 << i;
+    if (!digitalRead(sensorInPin[i]))
+      sensorsBuffer |= 1 << i;
     else
-      sensors &= ~(1 << i);
+      sensorsBuffer &= ~(1 << i);
   }
 }
