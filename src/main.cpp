@@ -18,7 +18,7 @@ Pour une utilisation avec une centrale ECOS®, veillez à décommander les ligne
 --------------------------------------------------------------------------------------------------------------------*/
 
 #define PROJECT "S88 decoder"
-#define VERSION "0.4.3"
+#define VERSION "0.4.4"
 #define AUTHOR "Christophe BOBILLE - www.locoduino.org"
 
 #include <Arduino.h>
@@ -32,30 +32,30 @@ const byte clockS88pin = 2; // horloge du bus S88 pin = 2
 const byte PSS88pin = 3;    // signal PS du bus S88 pin = 3
 
 #if defined(ARDUINO_AVR_NANO)
-const byte sensorInPin[] = {4, 5, 6, 7, 8 ,9 ,10, 11, 12, 14, 15, 16, 17, 18, 19, 13 };
+const byte sensorInPin[] = {4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 13};
 #elif defined(ARDUINO_AVR_UNO)
-const byte sensorInPin[] = {4, 5, 6, 7, 8 ,9 ,10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+const byte sensorInPin[] = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
 #endif
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-volatile uint16_t clockCounter;    // compteur de tops horloge
+volatile uint16_t clockCounter; // compteur de tops horloge
 
 /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
 volatile uint32_t loopCounter = 0; // reset proper à l’ECOS
 ----------------------------------------------------------------------------------*/
-volatile uint16_t sensorsBuffer;         // tampon de 16 bits pour les capteurs
-volatile uint16_t data = 0xFFFF;   // le registre à décalage
+volatile uint16_t sensorsBuffer; // tampon de 16 bits pour les capteurs
+volatile uint16_t data = 0xFFFF; // le registre à décalage
 
 // routine d’interruption du signal PS
 // (déclenchement d’un nouveau cycle d’horloge)
 void PS()
 {
-  clockCounter = 0; // on remet le compteur à zéro
-  noInterrupts();   // Désactiver les interruptions pour manipuler `sensors`
-  data = sensorsBuffer;   // on vide le tampon des capteurs dans le registre à décalage
-  sensorsBuffer = 0;      // on remet à zéro le tampon des capteurs
-  interrupts();     // Réactiver les interruptions
+  clockCounter = 0;     // on remet le compteur à zéro
+  noInterrupts();       // Désactiver les interruptions pour manipuler `sensors`
+  data = sensorsBuffer; // on vide le tampon des capteurs dans le registre à décalage
+  sensorsBuffer = 0;    // on remet à zéro le tampon des capteurs
+  interrupts();         // Réactiver les interruptions
 
   /* ---- Ne décommenter cette ligne que dans le cas où vous utilisez une ECOS -------
   loopCounter++; // Pour l'ECOS, on incrémente le nombre de top d’horloge
@@ -92,12 +92,16 @@ void loop()
       loopCounter = 0;
     }
   ----------------------------------------------------------------------------------*/
+  uint16_t tempBuffer = 0; // Tampon temporaire
 
   for (byte i = 0; i < nbSensors; i++)
   { // MAJ des capteurs
     if (!digitalRead(sensorInPin[i]))
-      sensorsBuffer |= 1 << i;
+      tempBuffer |= 1 << i;
     else
-      sensorsBuffer &= ~(1 << i);
+      tempBuffer &= ~(1 << i);
   }
+  noInterrupts();
+  sensorsBuffer = tempBuffer;
+  interrupts();
 }
